@@ -1,0 +1,35 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Verify tag is semver
+        run: echo "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
+      - name: build
+        run: go build ./...
+      - name: vet
+        run: go vet ./...
+      - name: test
+        run: go test ./... -race
+      - name: Warm module proxy (triggers pkg.go.dev indexing)
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsSL "https://proxy.golang.org/github.com/buildry-wire/wire-go/@v/${GITHUB_REF_NAME}.info"; then
+              echo "proxy has ${GITHUB_REF_NAME}"; exit 0
+            fi
+            echo "proxy not ready, retry in 15s"; sleep 15
+          done
+          echo "proxy did not pick up the tag in time (non-fatal; first 'go get' will trigger it)"
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
