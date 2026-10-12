@@ -24,7 +24,7 @@ func main() {
 	ctx := context.Background()
 
 	pi, err := client.PaymentIntents.Create(ctx, &wire.PaymentIntentCreateParams{
-		Amount:   50000, // 500.00 MNT, minor units
+		Amount:   50000, // whole tögrög: 50,000 ₮ (no fractional part)
 		Currency: "MNT",
 	})
 	if err != nil {
